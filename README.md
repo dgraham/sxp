@@ -7,7 +7,11 @@ Convert structured text to pretty-printed S-expressions.
 Format an S-expression from standard input with `sxp sexp`:
 
 ```console
-$ printf '(robots (robot (name "Hubot") (role gifs)) (robot (name "Bender") (role bending)) (robot (name "Baymax") (role doctor)))' | sxp sexp
+$ printf '%s' \
+  '(robots (robot (name "Hubot") (role gifs)) ' \
+  '(robot (name "Bender") (role bending)) ' \
+  '(robot (name "Baymax") (role doctor)))' \
+  | sxp sexp
 (robots
   (robot (name "Hubot") (role gifs))
   (robot (name "Bender") (role bending))
