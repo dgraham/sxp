@@ -1,0 +1,13 @@
+[package]
+name = "sxp-md"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+getopts.workspace = true
+pulldown-cmark = "0.13"
+sxp.workspace = true
