@@ -1,0 +1,23 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/sxp",
+    "crates/sxp-core",
+    "crates/sxp-sexp",
+]
+
+[workspace.package]
+version = "0.1.0"
+authors = ["David Graham <david.malcom.graham@gmail.com>"]
+description = "S-expression parser and serializer"
+repository = "https://github.com/dgraham/sxp"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+getopts = "0.2"
+memchr = "2.8.3"
+sxp = { path = "crates/sxp" }
+sxp-core = { path = "crates/sxp-core" }
+termcolor = "1.4.1"
+wide = "1.7.1"
