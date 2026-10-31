@@ -7,6 +7,7 @@ members = [
     "crates/sxp-html",
     "crates/sxp-json",
     "crates/sxp-md",
+    "crates/sxp-promql",
     "crates/sxp-sexp",
     "crates/sxp-toml",
     "crates/sxp-xml",

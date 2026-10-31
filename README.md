@@ -24,7 +24,8 @@ $ printf '(robots (robot (name "Hubot") (role gifs)) (robot (name "Bender") (rol
 | [sxp-html](crates/sxp-html/README.md) | HTML → S-expression |
 | [sxp-json](crates/sxp-json/README.md) | JSON → S-expression |
 | [sxp-md](crates/sxp-md/README.md) | Markdown → S-expression |
-| [sxp-sexp](crates/sxp-sexp/README.md) | Parse and format S-expressions |
+| [sxp-promql](crates/sxp-promql/README.md) | PromQL → S-expression |
+| [sxp-sexp](crates/sxp-sexp/README.md) | S-expression → S-expression |
 | [sxp-toml](crates/sxp-toml/README.md) | TOML → S-expression |
 | [sxp-xml](crates/sxp-xml/README.md) | XML → S-expression |
 | [sxp-yaml](crates/sxp-yaml/README.md) | YAML → S-expression |
