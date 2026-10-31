@@ -6,6 +6,7 @@ members = [
     "crates/sxp-csv",
     "crates/sxp-html",
     "crates/sxp-sexp",
+    "crates/sxp-xml",
 ]
 
 [workspace.package]

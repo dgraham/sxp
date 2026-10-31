@@ -1,0 +1,13 @@
+[package]
+name = "sxp-xml"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+getopts.workspace = true
+quick-xml = "0.42"
+sxp.workspace = true

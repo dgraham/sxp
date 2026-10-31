@@ -23,6 +23,7 @@ $ printf '(robots (robot (name "Hubot") (role gifs)) (robot (name "Bender") (rol
 | [sxp-csv](crates/sxp-csv/README.md) | CSV |
 | [sxp-html](crates/sxp-html/README.md) | HTML |
 | [sxp-sexp](crates/sxp-sexp/README.md) | Parse and format S-expressions |
+| [sxp-xml](crates/sxp-xml/README.md) | XML |
 
 ## Development
 
