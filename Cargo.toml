@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/sxp",
     "crates/sxp-core",
+    "crates/sxp-csv",
     "crates/sxp-sexp",
 ]
 
@@ -15,6 +16,7 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
+csv = "1.4"
 getopts = "0.2"
 memchr = "2.8.3"
 sxp = { path = "crates/sxp" }
