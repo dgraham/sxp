@@ -23,7 +23,7 @@ $ printf '%s' \
 | Crate | Description |
 |---|---
 | [sxp](crates/sxp/README.md) | `sxp` command and shared parser types |
-| [sxp-core](crates/sxp-core/README.md) | Incremental, zero-copy, allocation-free, no_std S-expression lexer |
+| [sxp-core](crates/sxp-core/README.md) | Incremental, zero-copy, allocation-free, `no_std` S-expression lexer |
 | [sxp-csv](crates/sxp-csv/README.md) | CSV → S-expression |
 | [sxp-html](crates/sxp-html/README.md) | HTML → S-expression |
 | [sxp-json](crates/sxp-json/README.md) | JSON → S-expression |
