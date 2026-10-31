@@ -21,6 +21,7 @@ $ printf '(robots (robot (name "Hubot") (role gifs)) (robot (name "Bender") (rol
 | [sxp](crates/sxp/README.md) | `sxp` command and shared parser types |
 | [sxp-core](crates/sxp-core/README.md) | Incremental, zero-copy, allocation-free, no_std S-expression lexer |
 | [sxp-csv](crates/sxp-csv/README.md) | CSV |
+| [sxp-html](crates/sxp-html/README.md) | HTML |
 | [sxp-sexp](crates/sxp-sexp/README.md) | Parse and format S-expressions |
 
 ## Development
