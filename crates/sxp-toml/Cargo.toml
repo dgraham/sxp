@@ -1,0 +1,13 @@
+[package]
+name = "sxp-toml"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+getopts.workspace = true
+sxp.workspace = true
+toml = "1.1"
