@@ -25,6 +25,7 @@ $ printf '(robots (robot (name "Hubot") (role gifs)) (robot (name "Bender") (rol
 | [sxp-sexp](crates/sxp-sexp/README.md) | Parse and format S-expressions |
 | [sxp-toml](crates/sxp-toml/README.md) | TOML → S-expression |
 | [sxp-xml](crates/sxp-xml/README.md) | XML → S-expression |
+| [sxp-yaml](crates/sxp-yaml/README.md) | YAML → S-expression |
 
 ## Development
 

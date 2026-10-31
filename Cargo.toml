@@ -8,6 +8,7 @@ members = [
     "crates/sxp-sexp",
     "crates/sxp-toml",
     "crates/sxp-xml",
+    "crates/sxp-yaml",
 ]
 
 [workspace.package]
