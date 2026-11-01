@@ -37,8 +37,10 @@ impl JsonParser {
     }
 
     pub fn parse(&mut self, input: &str) -> Result<Sexp> {
-        let value =
-            serde_json::from_str(input).map_err(|error| ParseError::new(error.to_string(), 0))?;
+        let value = serde_json::from_str(input).map_err(|error| {
+            let offset = json_error_offset(input, error.line(), error.column());
+            ParseError::new(error.to_string(), offset)
+        })?;
         self.lower_value(value)
     }
 
@@ -72,6 +74,17 @@ impl JsonParser {
             }
         }
     }
+}
+
+fn json_error_offset(input: &str, line: usize, column: usize) -> usize {
+    let line_start = input
+        .split_inclusive('\n')
+        .take(line.saturating_sub(1))
+        .map(str::len)
+        .sum::<usize>();
+    line_start
+        .saturating_add(column.saturating_sub(1))
+        .min(input.len())
 }
 
 impl Parser for JsonParser {
@@ -142,5 +155,12 @@ mod tests {
     #[test]
     fn rejects_invalid_json() {
         assert!(parse(r#"{"unterminated":"value""#).is_err());
+    }
+
+    #[test]
+    fn reports_json_errors_as_byte_offsets_after_multibyte_text() {
+        let input = "{\n  \"ok\":\"é\",\n  \"x\": }";
+        let error = parse(input).unwrap_err();
+        assert_eq!(error.offset(), input.find('}').unwrap());
     }
 }

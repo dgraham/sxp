@@ -56,12 +56,12 @@ impl MarkdownParser {
         let mut stack: Vec<Vec<Sexp>> = Vec::new();
         let mut roots = Vec::new();
 
-        for event in Parser::new_ext(input, Options::all()) {
+        for (event, range) in Parser::new_ext(input, Options::all()).into_offset_iter() {
             match event {
                 Event::Start(tag) => stack.push(self.tag_values(tag)),
                 Event::End(_) => {
                     let values = stack.pop().ok_or_else(|| {
-                        ParseError::new("Markdown parser emitted an unmatched end tag", 0)
+                        ParseError::new("Markdown parser emitted an unmatched end tag", range.start)
                     })?;
                     append(Sexp::list(values), &mut stack, &mut roots);
                 }

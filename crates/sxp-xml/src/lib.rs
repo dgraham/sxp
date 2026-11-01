@@ -85,26 +85,26 @@ impl XmlParser {
         let mut roots = Vec::new();
 
         loop {
-            match reader
-                .read_event()
-                .map_err(|error| ParseError::new(error.to_string(), 0))?
-            {
+            let event_offset = reader.buffer_position() as usize;
+            match reader.read_event().map_err(|error| {
+                ParseError::new(error.to_string(), reader.error_position() as usize)
+            })? {
                 Event::Start(element) => {
                     preserved.push(preserves_space(
                         &element,
                         preserved.last().copied().unwrap_or(false),
                     ));
-                    stack.push(self.element_values(&element)?);
+                    stack.push(self.element_values(&element, event_offset)?);
                 }
                 Event::Empty(element) => append(
-                    Sexp::list(self.element_values(&element)?),
+                    Sexp::list(self.element_values(&element, event_offset)?),
                     &mut stack,
                     &mut roots,
                 ),
                 Event::End(_) => {
                     preserved.pop();
                     let values = stack.pop().ok_or_else(|| {
-                        ParseError::new("XML parser emitted an unmatched end tag", 0)
+                        ParseError::new("XML parser emitted an unmatched end tag", event_offset)
                     })?;
                     append(Sexp::list(values), &mut stack, &mut roots);
                 }
@@ -162,7 +162,7 @@ fn is_xml_whitespace(character: char) -> bool {
 }
 
 impl XmlParser {
-    fn element_values(&mut self, element: &BytesStart<'_>) -> Result<Vec<Sexp>> {
+    fn element_values(&mut self, element: &BytesStart<'_>, offset: usize) -> Result<Vec<Sexp>> {
         let mut values = vec![self.symbol(element.name().as_ref())];
         let attributes = element
             .attributes()
@@ -178,7 +178,7 @@ impl XmlParser {
                 ]))
             })
             .collect::<std::result::Result<Vec<_>, quick_xml::Error>>()
-            .map_err(|error| ParseError::new(error.to_string(), 0))?;
+            .map_err(|error| ParseError::new(error.to_string(), offset))?;
         if !attributes.is_empty() {
             values.push(Sexp::list(
                 std::iter::once(self.symbol("@")).chain(attributes),
@@ -302,5 +302,12 @@ mod tests {
                 .map(|sexp| sexp.to_string()),
             Ok("((list \"\\n  \" (item \"one\") \"\\n\"))".to_owned())
         );
+    }
+
+    #[test]
+    fn reports_the_start_of_a_mismatched_closing_tag() {
+        let input = "<x></y>";
+        let error = parse(input).unwrap_err();
+        assert_eq!(error.offset(), input.find("</y>").unwrap());
     }
 }
