@@ -28,6 +28,7 @@ $ printf '%s' \
 | [sxp-html](crates/sxp-html/README.md) | HTML → S-expression |
 | [sxp-json](crates/sxp-json/README.md) | JSON → S-expression |
 | [sxp-md](crates/sxp-md/README.md) | Markdown → S-expression |
+| [sxp-pg](crates/sxp-pg/README.md) | PostgreSQL → S-expression |
 | [sxp-promql](crates/sxp-promql/README.md) | PromQL → S-expression |
 | [sxp-sexp](crates/sxp-sexp/README.md) | S-expression → S-expression |
 | [sxp-toml](crates/sxp-toml/README.md) | TOML → S-expression |

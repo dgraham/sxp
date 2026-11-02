@@ -7,6 +7,7 @@ members = [
     "crates/sxp-html",
     "crates/sxp-json",
     "crates/sxp-md",
+    "crates/sxp-pg",
     "crates/sxp-promql",
     "crates/sxp-sexp",
     "crates/sxp-toml",
@@ -26,6 +27,7 @@ license = "MIT"
 csv = "1.4"
 getopts = "0.2"
 memchr = "2.8.3"
+pg_query = "18.1"
 sxp = { path = "crates/sxp" }
 sxp-core = { path = "crates/sxp-core" }
 termcolor = "1.4.1"
