@@ -10,6 +10,7 @@ members = [
     "crates/sxp-pg",
     "crates/sxp-promql",
     "crates/sxp-sexp",
+    "crates/sxp-sql",
     "crates/sxp-toml",
     "crates/sxp-xml",
     "crates/sxp-yaml",

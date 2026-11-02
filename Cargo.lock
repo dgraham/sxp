@@ -1253,6 +1253,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sxp-sql"
+version = "0.1.0"
+dependencies = [
+ "getopts",
+ "sxp",
+ "sxp-pg",
+]
+
+[[package]]
 name = "sxp-toml"
 version = "0.1.0"
 dependencies = [

@@ -31,6 +31,7 @@ $ printf '%s' \
 | [sxp-pg](crates/sxp-pg/README.md) | PostgreSQL → S-expression |
 | [sxp-promql](crates/sxp-promql/README.md) | PromQL → S-expression |
 | [sxp-sexp](crates/sxp-sexp/README.md) | S-expression → S-expression |
+| [sxp-sql](crates/sxp-sql/README.md) | SQL → S-expression |
 | [sxp-toml](crates/sxp-toml/README.md) | TOML → S-expression |
 | [sxp-xml](crates/sxp-xml/README.md) | XML → S-expression |
 | [sxp-yaml](crates/sxp-yaml/README.md) | YAML → S-expression |
