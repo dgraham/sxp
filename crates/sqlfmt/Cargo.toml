@@ -1,0 +1,13 @@
+[package]
+name = "sqlfmt"
+version.workspace = true
+authors.workspace = true
+description.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+getopts.workspace = true
+pg_query.workspace = true
+sxp.workspace = true

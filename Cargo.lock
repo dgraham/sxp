@@ -1148,6 +1148,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sqlfmt"
+version = "0.1.0"
+dependencies = [
+ "getopts",
+ "pg_query",
+ "sxp",
+]
+
+[[package]]
 name = "string_cache"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -35,6 +35,7 @@ $ printf '%s' \
 | [sxp-toml](crates/sxp-toml/README.md) | TOML → S-expression |
 | [sxp-xml](crates/sxp-xml/README.md) | XML → S-expression |
 | [sxp-yaml](crates/sxp-yaml/README.md) | YAML → S-expression |
+| [sqlfmt](crates/sqlfmt/README.md) | SQL statement splitter |
 
 ## Development
 

@@ -11,6 +11,7 @@ members = [
     "crates/sxp-promql",
     "crates/sxp-sexp",
     "crates/sxp-sql",
+    "crates/sqlfmt",
     "crates/sxp-toml",
     "crates/sxp-xml",
     "crates/sxp-yaml",
