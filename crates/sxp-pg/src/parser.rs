@@ -23,36 +23,38 @@ mod tests;
 mod txn;
 mod xml;
 
-pub(super) fn parse(parser: &mut PostgresParser, input: &str) -> Result<Sexp> {
-    let result =
-        pg_query::parse(input, 0).map_err(|error| ParseError::new(error.to_string(), 0))?;
-    let statements = result
-        .protobuf
-        .stmts
-        .iter()
-        .map(|stmt| {
-            parser
-                .required_node(stmt.stmt.as_deref(), "statement")
-                .and_then(|node| parser.lower(node))
-        })
-        .collect::<Result<Vec<_>>>()?;
+impl PostgresParser {
+    pub(super) fn parse_statements(&mut self, input: &str) -> Result<Vec<Sexp>> {
+        let result =
+            pg_query::parse(input, 0).map_err(|error| ParseError::new(error.to_string(), 0))?;
+        let statements = result
+            .protobuf
+            .stmts
+            .iter()
+            .map(|stmt| {
+                self.required_node(stmt.stmt.as_deref(), "statement")
+                    .and_then(|node| self.lower(node))
+            })
+            .collect::<Result<Vec<_>>>()?;
 
-    let tags = if parser.options.sqlcommenter {
-        sqlcommenter::sqlcommenter_tags(input)
-    } else {
-        Vec::new()
-    };
-    let statements = parser.attach_tags(
-        statements,
-        &sqlcommenter::statement_spans(&result.protobuf.stmts, input),
-        &tags,
-    );
+        let tags = if self.options.sqlcommenter {
+            sqlcommenter::sqlcommenter_tags(input)
+        } else {
+            Vec::new()
+        };
+        let mut statements = self.attach_tags(
+            statements,
+            &sqlcommenter::statement_spans(&result.protobuf.stmts, input),
+            &tags,
+        );
 
-    match statements.as_slice() {
-        [] if tags.is_empty() => Err(ParseError::new("PostgreSQL parser returned no tree", 0)),
-        [] => Ok(parser.sqlcommenter_clause(tags.iter())),
-        [stmt] => Ok(stmt.clone()),
-        _ => Ok(parser.list("statements", statements)),
+        if statements.is_empty() {
+            if tags.is_empty() {
+                return Err(ParseError::new("PostgreSQL parser returned no tree", 0));
+            }
+            statements.push(self.sqlcommenter_clause(tags.iter()));
+        }
+        Ok(statements)
     }
 }
 
