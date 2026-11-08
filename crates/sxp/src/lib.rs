@@ -220,6 +220,16 @@ impl Sexp {
         Self::List(values.into_iter().collect())
     }
 
+    /// Returns whether this expression is a list.
+    pub fn is_list(&self) -> bool {
+        matches!(self, Self::List(_))
+    }
+
+    /// Returns whether this expression is an atom.
+    pub fn is_atom(&self) -> bool {
+        matches!(self, Self::Atom(_))
+    }
+
     pub fn iter(&self) -> SexpIter<'_> {
         self.into_iter()
     }
@@ -703,6 +713,18 @@ mod tests {
                 width: PRETTY_WIDTH,
             }
         );
+    }
+
+    #[test]
+    fn is_list_identifies_list_expressions() {
+        assert!(Sexp::list([]).is_list());
+        assert!(!Sexp::symbol("atom").is_list());
+    }
+
+    #[test]
+    fn is_atom_identifies_atom_expressions() {
+        assert!(Sexp::symbol("atom").is_atom());
+        assert!(!Sexp::list([]).is_atom());
     }
 
     #[test]
