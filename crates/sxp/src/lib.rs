@@ -230,6 +230,36 @@ impl Sexp {
         matches!(self, Self::Atom(_))
     }
 
+    /// Returns the first item of a non-empty list.
+    pub fn first(&self) -> Option<&Self> {
+        match self {
+            Self::List(values) => values.first(),
+            Self::Atom(_) => None,
+        }
+    }
+
+    /// Consumes a list and returns its first item.
+    ///
+    /// Returns `None` for atoms and empty lists.
+    pub fn into_first(self) -> Option<Self> {
+        match self {
+            Self::List(values) => values.into_vec().into_iter().next(),
+            Self::Atom(_) => None,
+        }
+    }
+
+    /// Consumes a non-empty list and returns its remaining items as a list.
+    ///
+    /// Returns `None` for atoms and empty lists.
+    pub fn into_rest(self) -> Option<Self> {
+        let Self::List(values) = self else {
+            return None;
+        };
+        let mut values = values.into_vec().into_iter();
+        values.next()?;
+        Some(Self::list(values))
+    }
+
     pub fn iter(&self) -> SexpIter<'_> {
         self.into_iter()
     }
@@ -725,6 +755,38 @@ mod tests {
     fn is_atom_identifies_atom_expressions() {
         assert!(Sexp::symbol("atom").is_atom());
         assert!(!Sexp::list([]).is_atom());
+    }
+
+    #[test]
+    fn first_borrows_the_first_list_item() {
+        let list = Sexp::list([Sexp::symbol("first"), Sexp::symbol("rest")]);
+        assert_eq!(list.first(), Some(&Sexp::symbol("first")));
+        assert_eq!(Sexp::list([]).first(), None);
+        assert_eq!(Sexp::symbol("atom").first(), None);
+    }
+
+    #[test]
+    fn into_first_selects_the_first_list_item() {
+        assert_eq!(
+            Sexp::list([Sexp::symbol("first"), Sexp::symbol("rest")]).into_first(),
+            Some(Sexp::symbol("first"))
+        );
+        assert_eq!(Sexp::list([]).into_first(), None);
+        assert_eq!(Sexp::symbol("atom").into_first(), None);
+    }
+
+    #[test]
+    fn into_rest_selects_the_remaining_list_items() {
+        assert_eq!(
+            Sexp::list([Sexp::symbol("first"), Sexp::symbol("rest")]).into_rest(),
+            Some(Sexp::list([Sexp::symbol("rest")]))
+        );
+        assert_eq!(
+            Sexp::list([Sexp::symbol("only")]).into_rest(),
+            Some(Sexp::list([]))
+        );
+        assert_eq!(Sexp::list([]).into_rest(), None);
+        assert_eq!(Sexp::symbol("atom").into_rest(), None);
     }
 
     #[test]
