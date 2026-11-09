@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use getopts::Options;
 use sxp::cli::{OptionsBuilder, args, is_broken_pipe};
-use sxp::{ColorChoice, Colors, Format, ParserOptions, SexpParser, SexpReader, write_stdout};
+use sxp::{ColorChoice, Colors, Format, ParserOptions, Sexp, SexpParser, SexpReader, write_stdout};
 
 fn main() -> ExitCode {
     match run() {
@@ -42,6 +42,19 @@ fn run() -> Result<(), Box<dyn Error>> {
         .transpose()?;
     let options = ParserOptions::default().max_symbol_entries(max_symbol_entries);
 
+    let first = matches.opt_present("first") || matches.opt_present("car");
+    let rest = matches.opt_present("rest") || matches.opt_present("cdr");
+    if first && rest {
+        return Err("choose only one of --first/--car or --rest/--cdr".into());
+    }
+    let selector = if first {
+        Some(Selector::First)
+    } else if rest {
+        Some(Selector::Rest)
+    } else {
+        None
+    };
+
     let choice = match matches.opt_str("color").as_deref() {
         None => ColorChoice::Auto,
         Some(mode) => mode.parse()?,
@@ -70,15 +83,50 @@ fn run() -> Result<(), Box<dyn Error>> {
         let stdin = io::stdin();
         let mut reader = SexpReader::with_options(stdin.lock(), options);
         while let Some(sexp) = reader.read_next()? {
+            let sexp = match selector {
+                Some(selector) => select(sexp, selector)?,
+                None => sexp,
+            };
             write_stdout(&sexp, format, &colors, choice)?;
         }
     } else {
         let mut input = String::new();
         io::stdin().read_to_string(&mut input)?;
         let mut parser = SexpParser::with_options(options);
-        write_stdout(&parser.parse(&input)?, format, &colors, choice)?;
+        let sexp = parser.parse(&input)?;
+        let sexp = match selector {
+            Some(selector) => select(sexp, selector)?,
+            None => sexp,
+        };
+        write_stdout(&sexp, format, &colors, choice)?;
     }
     Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum Selector {
+    First,
+    Rest,
+}
+
+fn select(sexp: Sexp, selector: Selector) -> io::Result<Sexp> {
+    let operation = match selector {
+        Selector::First => "--first/--car",
+        Selector::Rest => "--rest/--cdr",
+    };
+    let is_list = sexp.is_list();
+    let selected = match selector {
+        Selector::First => sexp.into_first(),
+        Selector::Rest => sexp.into_rest(),
+    };
+    selected.ok_or_else(|| {
+        let message = if is_list {
+            format!("{operation} cannot select from an empty list")
+        } else {
+            format!("{operation} requires a list")
+        };
+        io::Error::new(io::ErrorKind::InvalidInput, message)
+    })
 }
 
 fn opts() -> Options {
@@ -88,6 +136,10 @@ fn opts() -> Options {
         .colors()
         .build();
     opts.optflag("", "stream", "Format consecutive top-level expressions");
+    opts.optflag("", "first", "Select the first item of each top-level list");
+    opts.optflag("", "car", "Alias for --first");
+    opts.optflag("", "rest", "Select the rest of each top-level list");
+    opts.optflag("", "cdr", "Alias for --rest");
     opts
 }
 
