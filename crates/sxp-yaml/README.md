@@ -12,11 +12,15 @@ $ printf 'title: Example\nactive: true\nscores: [3, 5]\n' | sxp yaml
 
 The binary supports `--print-pattern`, `--validate`, and `--query PATTERN`.
 Its grammar includes typed scalars, tags, sequences, mappings, and
-multi-document streams.
+multi-document streams. Use `--lose` to emit each YAML document as a separate
+line-oriented S-expression. It supports compact and minified formats.
 
 ```console
 $ printf 'scores: [3, 5]' | sxp yaml | sxp yaml --validate
 $ printf 'scores: [3, 5]' | sxp yaml | sxp yaml --query '(capture arrays (list seq (repeat (any))))'
+$ printf '%s\n' '---' 'a: 1' '---' '- x' '- y' | sxp yaml --lose | sxp sexp --stream
+(map ("a" 1))
+(seq "x" "y")
 ```
 
 See the [`sxp` crate](../sxp/README.md) for shared query and formatting options.

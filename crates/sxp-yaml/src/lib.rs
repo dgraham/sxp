@@ -1,3 +1,5 @@
+use std::io::Read;
+
 mod grammar;
 pub use grammar::grammar;
 
@@ -37,24 +39,42 @@ impl YamlParser {
     }
 
     pub fn parse(&mut self, input: &str) -> Result<Sexp> {
+        let mut documents = self.parse_documents(input)?.into_iter();
+        let Some(first) = documents.next() else {
+            return Ok(Sexp::nil());
+        };
+        let Some(second) = documents.next() else {
+            return Ok(first);
+        };
+        let tag = self.symbol("documents");
+        Ok(Sexp::list(
+            std::iter::once(tag).chain([first, second]).chain(documents),
+        ))
+    }
+
+    /// Creates a reader that yields each YAML document as a separate
+    /// S-expression.
+    pub fn stream<R: Read>(&mut self, mut input: R) -> Result<YamlStream> {
+        let mut yaml = String::new();
+        input
+            .read_to_string(&mut yaml)
+            .map_err(|error| ParseError::new(format!("failed to read YAML input: {error}"), 0))?;
+        let documents = self.parse_documents(&yaml)?;
+        Ok(YamlStream {
+            documents: documents.into_iter(),
+        })
+    }
+
+    fn parse_documents(&mut self, input: &str) -> Result<Vec<Sexp>> {
         let documents: Vec<Value> =
             noyalib::parallel::parse(input).map_err(|error: noyalib::Error| {
                 let offset = error.location().map_or(0, |location| location.index());
                 ParseError::new(error.to_string(), offset)
             })?;
-        match documents.as_slice() {
-            [] => Ok(Sexp::nil()),
-            [document] => self.lower_value(document.clone()),
-            documents => {
-                let values = documents
-                    .iter()
-                    .cloned()
-                    .map(|value| self.lower_value(value))
-                    .collect::<Result<Vec<_>>>()?;
-                let documents = self.symbol("documents");
-                Ok(Sexp::list(std::iter::once(documents).chain(values)))
-            }
-        }
+        documents
+            .into_iter()
+            .map(|value| self.lower_value(value))
+            .collect()
     }
 
     fn symbol(&mut self, text: &str) -> Sexp {
@@ -107,6 +127,18 @@ impl Parser for YamlParser {
     }
 }
 
+/// Yields documents from a parsed YAML stream one at a time.
+pub struct YamlStream {
+    documents: std::vec::IntoIter<Sexp>,
+}
+
+impl YamlStream {
+    /// Returns the next document, or `None` when the input is exhausted.
+    pub fn read_next(&mut self) -> Result<Option<Sexp>> {
+        Ok(self.documents.next())
+    }
+}
+
 fn float_text(value: f64) -> String {
     if value.is_nan() {
         "nan".to_owned()
@@ -121,6 +153,7 @@ fn float_text(value: f64) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
     use std::rc::Rc;
 
     use super::YamlParser;
@@ -209,6 +242,24 @@ mod tests {
             "---\na: 1\n---\n- x\n- y\n",
             r#"(documents (map ("a" 1)) (seq "x" "y"))"#,
         );
+    }
+
+    #[test]
+    fn stream_yields_each_document_individually() {
+        let mut parser = YamlParser::new();
+        let mut stream = parser
+            .stream(Cursor::new("---\na: 1\n---\n- x\n- y\n"))
+            .unwrap();
+
+        assert_eq!(
+            stream.read_next().unwrap().unwrap().to_string(),
+            r#"(map ("a" 1))"#
+        );
+        assert_eq!(
+            stream.read_next().unwrap().unwrap().to_string(),
+            r#"(seq "x" "y")"#
+        );
+        assert_eq!(stream.read_next().unwrap(), None);
     }
 
     #[test]

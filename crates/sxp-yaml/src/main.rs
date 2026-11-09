@@ -38,11 +38,14 @@ fn run() -> Result<ExitCode, Box<dyn Error>> {
 
     let print_pattern = matches.opt_present("print-pattern");
     let validate = matches.opt_present("validate");
+    let lose = matches.opt_present("lose");
     let query = matches.opt_str("query");
-    let selected_modes =
-        usize::from(print_pattern) + usize::from(validate) + usize::from(query.is_some());
+    let selected_modes = usize::from(print_pattern)
+        + usize::from(validate)
+        + usize::from(query.is_some())
+        + usize::from(lose);
     if selected_modes > 1 {
-        return Err("choose only one of --print-pattern, --validate, or --query".into());
+        return Err("choose only one of --print-pattern, --validate, --query, or --lose".into());
     }
 
     let grammar = grammar();
@@ -51,10 +54,9 @@ fn run() -> Result<ExitCode, Box<dyn Error>> {
         return Ok(ExitCode::SUCCESS);
     }
 
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
-
     if validate {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input)?;
         let value = parse_sexp(&input)?;
         if grammar.matches_root(&value) {
             return Ok(ExitCode::SUCCESS);
@@ -73,11 +75,13 @@ fn run() -> Result<ExitCode, Box<dyn Error>> {
         colors.set(&spec)?;
     }
 
-    let format: Format = match matches.opt_str("format").as_deref() {
+    let format_option = matches.opt_str("format");
+    let width_option = matches.opt_str("width");
+    let format: Format = match format_option.as_deref() {
         None => Format::default(),
         Some(text) => text.parse()?,
     };
-    let format = match matches.opt_str("width") {
+    let format = match width_option.as_deref() {
         None => format,
         Some(text) => {
             let width = text
@@ -88,6 +92,8 @@ fn run() -> Result<ExitCode, Box<dyn Error>> {
     };
 
     if let Some(query_text) = query {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input)?;
         let tree = parse_sexp(&input)?;
         let pattern = Pattern::parse(&query_text)?;
         let matches = grammar.query(&tree, &pattern)?;
@@ -104,7 +110,32 @@ fn run() -> Result<ExitCode, Box<dyn Error>> {
         let options = ParserOptions::default().max_symbol_entries(max_symbol_entries);
         let mut parser = YamlParser::with_options(options);
 
-        write_stdout(&parser.parse(&input)?, format, &colors, choice)?;
+        if lose {
+            if width_option.is_some() {
+                return Err("--width cannot be used with --lose".into());
+            }
+            let format = match format_option.as_deref() {
+                None | Some("compact") => Format::Compact,
+                Some("minified") => Format::Minified,
+                Some(_) => {
+                    return Err("--lose supports only --format=compact or --format=minified".into());
+                }
+            };
+            let stdin = io::stdin();
+            let mut stream = parser.stream(stdin.lock())?;
+            let mut emitted = false;
+            while let Some(document) = stream.read_next()? {
+                write_stdout(&document, format, &colors, choice)?;
+                emitted = true;
+            }
+            if !emitted {
+                write_stdout(&Sexp::nil(), format, &colors, choice)?;
+            }
+        } else {
+            let mut input = String::new();
+            io::stdin().read_to_string(&mut input)?;
+            write_stdout(&parser.parse(&input)?, format, &colors, choice)?;
+        }
     }
     Ok(ExitCode::SUCCESS)
 }
@@ -127,12 +158,18 @@ fn parse_sexp(input: &str) -> sxp::Result<Sexp> {
 }
 
 fn opts() -> Options {
-    OptionsBuilder::new(env!("CARGO_PKG_NAME"))
+    let mut opts = OptionsBuilder::new(env!("CARGO_PKG_NAME"))
         .grammar()
         .symbol_pool()
         .formatting()
         .colors()
-        .build()
+        .build();
+    opts.optflag(
+        "",
+        "lose",
+        "Emit one line-oriented S-expression per YAML document",
+    );
+    opts
 }
 
 fn usage(opts: &Options) {
