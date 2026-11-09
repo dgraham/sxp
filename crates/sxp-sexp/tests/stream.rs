@@ -47,16 +47,32 @@ fn stream_formats_consecutive_expressions_before_eof() {
 }
 
 #[test]
-fn first_and_car_select_each_expression() {
+fn first_and_car_select_each_expression_and_display_strings() {
     for selector in ["--first", "--car"] {
         let output = run(
-            &["--stream", selector, "--format=compact", "--color=never"],
-            b"(a b)\n(c d)\n",
+            &["--stream", selector, "--format=display", "--color=never"],
+            br#"(header other)
+("plain text" ignored)
+("text with \"quotes\"" ignored)
+"#,
         );
 
         assert!(output.status.success());
-        assert_eq!(String::from_utf8(output.stdout).unwrap(), "a\nc\n");
+        assert_eq!(
+            String::from_utf8(output.stdout).unwrap(),
+            "header\nplain text\ntext with \"quotes\"\n"
+        );
     }
+
+    let output = run(
+        &["--first", "--format=display"],
+        b"(\"another string\" ignored)",
+    );
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap(),
+        "another string\n"
+    );
 }
 
 #[test]

@@ -41,6 +41,8 @@ pub enum Format {
     },
     /// Every item on its own line, indented by nesting depth.
     Vertical,
+    /// Prints strings without quotes, like Scheme's display procedure.
+    Display,
     /// Each token (atom or parenthesis) on its own line, without color, for
     /// line-oriented tools such as awk.
     Token,
@@ -67,7 +69,7 @@ impl Display for FormatParseError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
-            "invalid format {:?}: expected compact, minified, horizontal, vertical, token, or inspect",
+            "invalid format {:?}: expected compact, minified, horizontal, vertical, display, token, or inspect",
             self.text
         )
     }
@@ -96,6 +98,7 @@ impl FromStr for Format {
                 width: PRETTY_WIDTH,
             }),
             "vertical" => Ok(Self::Vertical),
+            "display" => Ok(Self::Display),
             "token" => Ok(Self::Token),
             "inspect" => Ok(Self::Inspect),
             _ => Err(FormatParseError {
@@ -504,6 +507,23 @@ impl Display for Sexp {
 }
 
 impl Sexp {
+    fn fmt_display(&self, out: &mut dyn WriteColor) -> io::Result<()> {
+        match self {
+            Self::Atom(Atom::String(value)) => out.write_all(value.as_bytes()),
+            Self::Atom(atom) => write!(out, "{atom}"),
+            Self::List(values) => {
+                out.write_all(b"(")?;
+                for (index, value) in values.iter().enumerate() {
+                    if index > 0 {
+                        out.write_all(b" ")?;
+                    }
+                    value.fmt_display(out)?;
+                }
+                out.write_all(b")")
+            }
+        }
+    }
+
     fn fmt_compact(&self, out: &mut dyn WriteColor, colors: Option<&Colors>) -> io::Result<()> {
         match self {
             Self::Atom(atom @ Atom::String(_)) => {
@@ -823,15 +843,26 @@ mod tests {
             })
         );
         assert_eq!("vertical".parse::<Format>(), Ok(Format::Vertical));
+        assert_eq!("display".parse::<Format>(), Ok(Format::Display));
         assert_eq!("token".parse::<Format>(), Ok(Format::Token));
         assert_eq!("inspect".parse::<Format>(), Ok(Format::Inspect));
         assert_eq!(
             "quick".parse::<Format>().map_err(|e| e.to_string()),
             Err(
-                "invalid format \"quick\": expected compact, minified, horizontal, vertical, token, or inspect"
+                "invalid format \"quick\": expected compact, minified, horizontal, vertical, display, token, or inspect"
                     .to_owned()
             )
         );
+    }
+
+    #[test]
+    fn display_omits_string_quotes_recursively() {
+        let value = Sexp::list([
+            Sexp::string("SELECT 1"),
+            Sexp::list([Sexp::string("two"), Sexp::symbol("three")]),
+        ]);
+
+        assert_eq!(render(&value, Format::Display), "(SELECT 1 (two three))");
     }
 
     #[test]

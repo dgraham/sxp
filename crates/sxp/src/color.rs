@@ -165,8 +165,8 @@ pub(crate) fn styled(
     }
 }
 
-/// Writes `sexp` to `out` in `format`, optionally colorized. Token and inspect
-/// formats are always plain for machine-readable output.
+/// Writes `sexp` to `out` in `format`, optionally colorized. Display, token,
+/// and inspect formats are always plain for machine-readable output.
 pub fn write(
     sexp: &Sexp,
     out: &mut dyn WriteColor,
@@ -177,13 +177,14 @@ pub fn write(
         Format::Compact => sexp.fmt_compact(out, colors),
         Format::Minified => sexp.fmt_minified(out, colors),
         Format::Horizontal { width } => sexp.fmt_pretty(out, colors, 0, width),
+        Format::Display => sexp.fmt_display(out),
         Format::Token => sexp.fmt_token(out),
         Format::Inspect => sexp.fmt_inspect(out),
         Format::Vertical => sexp.fmt_pretty(out, colors, 0, 0),
     }
 }
 
-/// Writes `sexp` to stdout, colorized according to `choice`.  Token
+/// Writes `sexp` to stdout, colorized according to `choice`. Display, token,
 /// and inspect formats are always plain.
 pub fn write_stdout(
     sexp: &Sexp,

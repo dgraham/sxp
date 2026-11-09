@@ -75,7 +75,7 @@ impl OptionsBuilder {
         self.options.optopt(
             "",
             "format",
-            "Output format: compact, minified, horizontal, vertical, token, or inspect",
+            "Output format: compact, minified, horizontal, vertical, display, token, or inspect",
             "FORMAT",
         );
         self.options.optopt(
