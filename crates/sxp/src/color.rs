@@ -192,7 +192,8 @@ pub fn write_stdout(
     colors: &Colors,
     choice: ColorChoice,
 ) -> io::Result<()> {
-    let mut stream = StandardStream::stdout(resolve(choice));
+    let stdout = StandardStream::stdout(resolve(choice));
+    let mut stream = stdout.lock();
     write(sexp, &mut stream, format, Some(colors))?;
     if !matches!(format, Format::Token | Format::Inspect) {
         stream.write_all(b"\n")?;

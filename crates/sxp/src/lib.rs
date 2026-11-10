@@ -411,17 +411,27 @@ impl Display for Atom {
             Self::Integer(value) | Self::Float(value) => formatter.write_str(value),
             Self::String(value) => {
                 formatter.write_str("\"")?;
-                for ch in value.chars() {
-                    match ch {
-                        '"' => formatter.write_str("\\\"")?,
-                        '\\' => formatter.write_str("\\\\")?,
-                        '\n' => formatter.write_str("\\n")?,
-                        '\r' => formatter.write_str("\\r")?,
-                        '\t' => formatter.write_str("\\t")?,
-                        ch if ch.is_control() => write!(formatter, "\\u{{{:x}}}", ch as u32)?,
-                        ch => write!(formatter, "{ch}")?,
+                let mut start = 0;
+                for (index, ch) in value.char_indices() {
+                    let escape = match ch {
+                        '"' => Some("\\\""),
+                        '\\' => Some("\\\\"),
+                        '\n' => Some("\\n"),
+                        '\r' => Some("\\r"),
+                        '\t' => Some("\\t"),
+                        _ => None,
+                    };
+                    if let Some(escape) = escape {
+                        formatter.write_str(&value[start..index])?;
+                        formatter.write_str(escape)?;
+                        start = index + ch.len_utf8();
+                    } else if ch.is_control() {
+                        formatter.write_str(&value[start..index])?;
+                        write!(formatter, "\\u{{{:x}}}", ch as u32)?;
+                        start = index + ch.len_utf8();
                     }
                 }
+                formatter.write_str(&value[start..])?;
                 formatter.write_str("\"")
             }
             Self::Boolean(value) => write!(formatter, "{value}"),
@@ -1067,6 +1077,13 @@ mod tests {
             value.to_string(),
             "(p (@ (class \"a\\\"b\")) \"Hello\\nworld\")"
         );
+    }
+
+    #[test]
+    fn writes_escaped_unicode_and_control_characters() {
+        let value = Sexp::list([Sexp::string("é\"\\\n\r\t\u{0}雪")]);
+
+        assert_eq!(render(&value, Format::Compact), r#"("é\"\\\n\r\t\u{0}雪")"#);
     }
 
     #[test]
