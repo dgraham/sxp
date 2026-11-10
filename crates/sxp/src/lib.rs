@@ -376,14 +376,23 @@ impl Atom {
         matches!(self, Self::Float(_))
     }
 
-    fn compact_width(&self) -> usize {
+    fn width_within(&self, max_width: usize) -> Option<usize> {
         match self {
-            Self::Symbol(value) => value.chars().count(),
-            Self::Integer(value) | Self::Float(value) => value.chars().count(),
+            Self::Symbol(value) => {
+                let width = value.chars().take(max_width.saturating_add(1)).count();
+                (width <= max_width).then_some(width)
+            }
+            Self::Integer(value) | Self::Float(value) => {
+                let width = value.chars().take(max_width.saturating_add(1)).count();
+                (width <= max_width).then_some(width)
+            }
             Self::String(value) => {
-                2 + value
-                    .chars()
-                    .map(|ch| match ch {
+                if max_width < 2 {
+                    return None;
+                }
+                let mut width = 2;
+                for ch in value.chars() {
+                    let char_width = match ch {
                         '"' | '\\' | '\n' | '\r' | '\t' => 2,
                         ch if ch.is_control() => {
                             let codepoint = ch as u32;
@@ -392,12 +401,17 @@ impl Atom {
                             4 + hex_digits as usize
                         }
                         _ => 1,
-                    })
-                    .sum::<usize>()
+                    };
+                    if char_width > max_width - width {
+                        return None;
+                    }
+                    width += char_width;
+                }
+                Some(width)
             }
-            Self::Boolean(true) => 4,
-            Self::Boolean(false) => 5,
-            Self::Nil => 3,
+            Self::Boolean(true) => (4 <= max_width).then_some(4),
+            Self::Boolean(false) => (5 <= max_width).then_some(5),
+            Self::Nil => (3 <= max_width).then_some(3),
         }
     }
 }
@@ -542,6 +556,28 @@ impl Display for Sexp {
 }
 
 impl Sexp {
+    fn width_within(&self, max_width: usize) -> Option<usize> {
+        match self {
+            Self::Atom(atom) => atom.width_within(max_width),
+            Self::List(values) => {
+                if max_width < 2 {
+                    return None;
+                }
+                let mut width = 2;
+                let separators = values.len().saturating_sub(1);
+                if separators > max_width - width {
+                    return None;
+                }
+                width += separators;
+                for value in values.iter() {
+                    let child_width = value.width_within(max_width - width)?;
+                    width += child_width;
+                }
+                Some(width)
+            }
+        }
+    }
+
     fn fmt_display(&self, out: &mut dyn WriteColor) -> io::Result<()> {
         match self {
             Self::Atom(Atom::String(value)) => out.write_all(value.as_bytes()),
@@ -641,7 +677,7 @@ impl Sexp {
             Self::List(values) => {
                 // Keep the list on one line when it fits within the width
                 // budget. The compact rendering is the horizontal layout.
-                if indent + self.compact_width() <= width {
+                if self.width_within(width.saturating_sub(indent)).is_some() {
                     return self.fmt_compact(out, colors);
                 }
                 styled(out, colors.map(|colors| &colors.punct), |out| {
@@ -691,16 +727,6 @@ impl Sexp {
             writeln!(out, "{depth}\t{kind}\t{value}")?;
         }
         Ok(())
-    }
-
-    fn compact_width(&self) -> usize {
-        match self {
-            Self::Atom(atom) => atom.compact_width(),
-            Self::List(values) => {
-                2 + values.len().saturating_sub(1)
-                    + values.iter().map(Self::compact_width).sum::<usize>()
-            }
-        }
     }
 }
 
@@ -1036,6 +1062,8 @@ mod tests {
     fn horizontal_counts_escaped_unicode_string_width_without_rendering() {
         let value = Sexp::list([Sexp::string("é\u{1}\n"), Sexp::symbol("x")]);
 
+        assert_eq!(value.width_within(14), Some(14));
+        assert_eq!(value.width_within(13), None);
         assert_eq!(
             render(&value, Format::Horizontal { width: 14 }),
             "(\"é\\u{1}\\n\" x)"
