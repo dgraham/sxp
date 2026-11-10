@@ -375,6 +375,31 @@ impl Atom {
     pub fn is_float(&self) -> bool {
         matches!(self, Self::Float(_))
     }
+
+    fn compact_width(&self) -> usize {
+        match self {
+            Self::Symbol(value) => value.chars().count(),
+            Self::Integer(value) | Self::Float(value) => value.chars().count(),
+            Self::String(value) => {
+                2 + value
+                    .chars()
+                    .map(|ch| match ch {
+                        '"' | '\\' | '\n' | '\r' | '\t' => 2,
+                        ch if ch.is_control() => {
+                            let codepoint = ch as u32;
+                            let hex_digits =
+                                (u32::BITS - codepoint.leading_zeros()).div_ceil(4).max(1);
+                            4 + hex_digits as usize
+                        }
+                        _ => 1,
+                    })
+                    .sum::<usize>()
+            }
+            Self::Boolean(true) => 4,
+            Self::Boolean(false) => 5,
+            Self::Nil => 3,
+        }
+    }
 }
 
 impl Display for Atom {
@@ -606,7 +631,7 @@ impl Sexp {
             Self::List(values) => {
                 // Keep the list on one line when it fits within the width
                 // budget. The compact rendering is the horizontal layout.
-                if indent + self.to_string().chars().count() <= width {
+                if indent + self.compact_width() <= width {
                     return self.fmt_compact(out, colors);
                 }
                 styled(out, colors.map(|colors| &colors.punct), |out| {
@@ -656,6 +681,16 @@ impl Sexp {
             writeln!(out, "{depth}\t{kind}\t{value}")?;
         }
         Ok(())
+    }
+
+    fn compact_width(&self) -> usize {
+        match self {
+            Self::Atom(atom) => atom.compact_width(),
+            Self::List(values) => {
+                2 + values.len().saturating_sub(1)
+                    + values.iter().map(Self::compact_width).sum::<usize>()
+            }
+        }
     }
 }
 
@@ -984,6 +1019,20 @@ mod tests {
         assert_eq!(
             render(&value, Format::Horizontal { width: 15 }),
             "(select\n  id\n  name)"
+        );
+    }
+
+    #[test]
+    fn horizontal_counts_escaped_unicode_string_width_without_rendering() {
+        let value = Sexp::list([Sexp::string("é\u{1}\n"), Sexp::symbol("x")]);
+
+        assert_eq!(
+            render(&value, Format::Horizontal { width: 14 }),
+            "(\"é\\u{1}\\n\" x)"
+        );
+        assert_eq!(
+            render(&value, Format::Horizontal { width: 13 }),
+            "(\"é\\u{1}\\n\"\n  x)"
         );
     }
 
